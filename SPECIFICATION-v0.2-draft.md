@@ -99,6 +99,13 @@ The stored context unit from MPF v0.1. It may contain content, references, metad
 
 A consequential operation that enters an MPF certified action channel and produces a certificate bundle. Also called an attested action when emphasizing witness signatures.
 
+Verified actions divide into two classes by initiation:
+
+- **Agent-initiated actions** are requested through the gateway by a client (typically an LLM-mediated agent) and certified under the applicable verifier profile. When the profile requires policy evaluation or capability-token enforcement, the certificate binds that evidence. The certificate proves the request, authorization or attestation, execution or observation, and boundaries required by the profile; it MUST NOT claim causation or control beyond those artifacts.
+- **Observed actions** include the case where the gateway has no causal control over the underlying process and only certifies its own observation of a published artifact. The actor is external to MPF (for example, a deterministic public pipeline producing a periodically refreshed output). The certificate MUST NOT imply the gateway controlled or policy-gated the upstream process; it certifies that the observer fetched specific bytes at a specific time, validated declared invariants, and produced a witnessed receipt for that observation.
+
+Agent-initiated observed actions and external-pipeline observations both use observed-action profiles when tool-side capability enforcement is unavailable.
+
 ### 3.4 Gateway
 
 The runtime boundary that receives requests, validates registry and policy requirements, coordinates witnesses, issues capability tokens where required, records receipts, and assembles certificate bundles.
@@ -150,6 +157,8 @@ Evidence about runtime, image, configuration, key binding, and deployment postur
 ### 3.14 Admission Manifest
 
 A signed declaration binding a certified session to operator identity, tenant/workflow scope, active action surface, policy digest, verifier profile, runtime/config evidence, and MCP or API authorization context. It is the operator-side admission evidence that verifiers use to determine whether the gateway was authorized to run the claimed workflow.
+
+For observation profiles (§9.4.1) the Admission Manifest additionally binds: observer code digest, validator code digest, source URL, cadence, expected schema (or schema digest), and pipeline identity. There is no agent-intent layer in observation profiles; the manifest plus the cadence declaration is the equivalent admission evidence.
 
 ## 4. Protocol Roles
 
@@ -283,6 +292,18 @@ Action operations are consequential invocations mediated by a gateway:
 - `action.verify`
 
 Any action claimed as verified or certified MUST use an Action Registry entry and MUST produce a receipt log. Uncertified local/demo calls MAY run without a registry only if they do not produce a verified-action certificate.
+
+Receipts MUST identify the actor of the certified operation. The following `actor.type` values are standardized in v0.2:
+
+| `actor.type` | Meaning |
+|---|---|
+| `agent` | An LLM-mediated or autonomous agent client requesting an action through the gateway. |
+| `human` | A human operator requesting an action through the gateway (for example, an approver or initiator). |
+| `service` | A non-agent automated client (scheduler, workflow runner, integration service) requesting an action through the gateway. |
+| `external_pipeline` | An external code-only process whose published output is observed by the gateway. The gateway has no causal control over execution. Used only with observed-action profiles. |
+| `code` | Generic alias for `external_pipeline` when the observed actor is not specifically a published-artifact pipeline (for example, a third-party deterministic computation observed at the API boundary). |
+
+Profiles MAY define additional actor types. Verifier profiles MUST specify which actor types they admit and what assurance claims each implies.
 
 ## 7. Core APIs
 
@@ -491,6 +512,43 @@ Observed profiles MUST declare:
 
 Verifiers MUST reject observed-only certificates that overclaim controlled execution.
 
+### 9.4.1 Observation Of External Pipelines
+
+A further variant of the observed-action profile applies when the actor is an external deterministic process (for example, a public data pipeline) that the gateway cannot influence at all. In this variant the gateway is purely an observer of a published artifact. The certificate MUST be framed as verified observation, not certification of upstream execution.
+
+Observation profiles MUST declare:
+
+- `capability_token_enforced=false`
+- `actor.type` set to `external_pipeline` or `code`
+- source identity binding: source URL, expected schema or schema digest, pipeline identity (repo, commit, or other stable identifier where available), and any provider/storage identity required by the verifier profile
+- observer code identity: digest of the observer/fetcher implementation
+- validator code identity: digest of any deterministic invariant validator that produced `validation.result` receipts
+- cadence: the schedule under which the observer polls the source (and the guard-key semantics for recurring observations, profile-defined)
+- retention mode: whether the raw fetched bytes are retained, an immutable copy is stored, or only the digest plus URL is preserved (lower-assurance profiles MAY use digest+URL; higher-assurance profiles SHOULD retain bytes since public URLs are mutable over time)
+- failure-mode handling: how missed polls, source-unavailable conditions, validation failures, validator exceptions, and bytes-changed-mid-interval are represented as receipts
+
+Observation profiles MUST NOT require an `intent.attested` receipt. Scheduled non-agent observations have no agent-intent layer; the equivalent admission evidence is the Admission Manifest plus the cadence declaration.
+
+A recommended receipt flow for a single observation cycle is:
+
+```text
+session.start
+  -> data.request          (observer issues fetch against source URL)
+  -> data.response         (observer commits to fetched bytes by digest)
+  -> validation.result     (validator commits to declared-invariant outcomes)
+  -> observation           (witnesses sign the observation subject)
+  -> session.end
+  -> checkpoint            (gateway publishes certificate bundle)
+```
+
+L1 witnesses sign observation/validation subjects. L2 policy witnesses are optional and typical uses are source URL pinning, max artifact size, schema version enforcement, allowed validator code digests, and cadence rules.
+
+Whether witnesses must independently fetch the source URL (in addition to signing the observer’s digest) is a verifier-profile decision. Profiles requiring witness-independent fetch produce stronger observation evidence at the cost of bandwidth and witness-side state.
+
+Guard-key semantics for recurring observations are profile-defined. Common choices include `(source_url, cadence_bucket)`, `(source_url, observed_timestamp)`, or a monotonically increasing sequence number bound to the gateway-source pair.
+
+Verifiers MUST reject observation certificates that claim policy-gated execution, capability-token enforcement, or upstream-process control.
+
 ## 10. Receipt Log
 
 Every verified action certificate MUST bind a receipt log or a receipt-log digest.
@@ -528,6 +586,12 @@ intent.attested
 tool.execution
 tool.execution.observed
 observation
+observation.request
+validation.result
+source.unavailable
+validation.failed
+validator.exception
+bytes.changed_in_interval
 human.approval.request
 human.approval.response
 abort
