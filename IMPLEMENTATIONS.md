@@ -12,7 +12,7 @@ Implementations may target MPF v0.1 (memory operations, released) or MPF v0.2 (a
 |---|---|
 | **Codebase** | Strata (internal identifier) |
 | **Status** | Production-grade pilot deployment |
-| **Conformance target** | MPF v0.2 draft (action operations) |
+| **Conformance target** | [MPF v0.2 draft](SPECIFICATION-v0.2-draft.md) (action operations) |
 | **Maintainer** | [amotivv, inc](https://amotivv.com) |
 | **License** | Proprietary implementation; protocol conformance under MPF Apache 2.0 |
 

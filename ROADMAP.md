@@ -53,7 +53,7 @@ The witness network and certificate bundle are the two largest new pieces of arc
 
 ### v0.2 Scope (specification deliverables)
 
-The v0.2 specification will define:
+The [v0.2 draft specification](SPECIFICATION-v0.2-draft.md) defines:
 
 - The action gateway protocol — the entry point at which consequential actions enter the certified channel
 - The witness model — tier definitions, quorum semantics, registry-anchored authorization
@@ -65,7 +65,7 @@ The v0.2 specification will define:
 
 ### Milestones
 
-- **v0.2 draft specification** — first public draft of the action-extension specification
+- **v0.2 draft specification** — [published](SPECIFICATION-v0.2-draft.md) (May 2026)
 - **First reference implementation** — see [IMPLEMENTATIONS.md](IMPLEMENTATIONS.md)
 - **Working group cadence** — established alongside v0.2 draft publication
 - **Conformance test suite** — verifier package and test bundles for implementation validation

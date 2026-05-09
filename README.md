@@ -58,15 +58,16 @@ The complete v0.1 protocol specification is available in [SPECIFICATION.md](SPEC
 - Integration patterns with existing AI protocols
 - Reference data structures and formats
 
-The v0.2 draft (action operations) is in development. Scope and structural commitments are tracked in [ROADMAP.md](ROADMAP.md).
+The v0.2 draft specification (action operations) is published in [SPECIFICATION-v0.2-draft.md](SPECIFICATION-v0.2-draft.md). Scope, conceptual mapping from v0.1 primitives, and conformance levels are tracked in [ROADMAP.md](ROADMAP.md).
 
 ## 🚀 Quick Start
 
-To implement MPF v0.1 in your project:
+To implement MPF in your project:
 
-1. Review [SPECIFICATION.md](SPECIFICATION.md) to understand the protocol
-2. Review [IMPLEMENTATIONS.md](IMPLEMENTATIONS.md) to see a live reference implementation
-3. Implement the core endpoints required for MPF compliance
+1. For memory operations, review [SPECIFICATION.md](SPECIFICATION.md) (v0.1, stable)
+2. For action operations, review [SPECIFICATION-v0.2-draft.md](SPECIFICATION-v0.2-draft.md) (v0.2, draft)
+3. Review [IMPLEMENTATIONS.md](IMPLEMENTATIONS.md) to see a live reference implementation
+4. Implement the core endpoints required for MPF compliance
 
 ## 🧠 Core Concepts
 
