@@ -85,6 +85,18 @@ Live operational channels MAY carry full content when policy and the verifier pr
 
 L1 mechanical witness evidence, L2 policy witness evidence, L3 domain attestation, TEE substrate evidence, and transparency inclusion are separate dimensions. A certificate MUST NOT imply a stronger dimension than it contains.
 
+### 2.9 Common Canonicalization
+
+MPF JSON protocol objects that are hashed, signed, witnessed, included in receipt state-root computation, or otherwise digested for verification MUST be canonicalized using RFC 8785 JSON Canonicalization Scheme (JCS) before digest, signature, or state-root computation.
+
+This applies to: receipt JSON objects, certificate JSON, registry JSON, policy bundle JSON, witness subjects, intent grant claims (when expressed as canonical JSON capability), admission manifests, and any other MPF JSON object the spec instructs an implementation to hash or sign.
+
+This does NOT apply to: raw evidence bytes, binary payloads, file artifacts, encrypted blobs, patches, externally referenced artifacts, JWT/JWS compact serializations (whose signing input is JOSE-defined), COSE messages (whose signing input is COSE-defined), or provider-native receipts (which retain their issuer’s byte semantics). Such non-JSON or non-MPF-protocol bytes are digested as-received.
+
+A verifier profile MAY define a different canonicalization scheme for specific MPF JSON objects only if the profile names the alternate scheme explicitly. A profile that uses an alternate canonicalization MUST NOT claim baseline `mpf-0.2` conformance for the affected objects; such a profile is treated as a profile-specific extension, not the default portable v0.2 wire behavior.
+
+The purpose of this rule is interoperability: two independent MPF v0.2 implementations operating on the same JSON object MUST produce the same digest and the same signature input, so that signatures and receipts are portable across implementations without requiring a shared canonicalization library beyond JCS.
+
 ## 3. Terminology
 
 ### 3.1 Memory Pod
@@ -474,8 +486,8 @@ MPF v0.2 allows two encoding profiles during draft status:
 
 | Profile | Use | Requirement |
 |---|---|---|
-| JWT/JWS capability | v0.1 compatibility and API access | Claims MUST preserve MPF semantics |
-| Canonical JSON capability | receipt-bound action grants | Claims MUST be canonicalized and signed with domain separation |
+| JWT/JWS capability | v0.1 compatibility and API access | Claims MUST preserve MPF semantics. JWS signing input is JOSE-defined and is not subject to §2.9 JCS canonicalization. Any MPF JSON object that embeds the capability claims or capability digest is itself JCS-canonicalized per §2.9. |
+| Canonical JSON capability | receipt-bound action grants | Claims are JSON capability claims canonicalized via RFC 8785 JCS per §2.9 and signed with the declared domain separator. |
 
 Implementations MUST expose enough token claims or token digests in the certificate bundle for the verifier profile to validate the action claim.
 
@@ -602,7 +614,7 @@ session.end
 
 ### 10.3 State Root
 
-The receipt state root MUST be recomputable from the previous state root, receipt payload digest, and receipt signatures under the declared canonicalization profile.
+The receipt state root MUST be recomputable from the previous state root, receipt payload digest, and receipt signatures under the declared canonicalization profile. For baseline `mpf-0.2` conformance, the receipt payload digest is computed over the JCS-canonicalized receipt JSON per §2.9.
 
 ### 10.4 Observation Rule
 
@@ -612,7 +624,7 @@ An output-producing action MUST be followed by an observation receipt before the
 
 ### 11.1 L1 Mechanical Witness
 
-L1 witnesses sign canonical protocol subjects. They MUST maintain anti-equivocation state for guard keys defined by profile.
+L1 witnesses sign canonical protocol subjects. The subject digest is computed over the JCS-canonicalized subject JSON per §2.9. They MUST maintain anti-equivocation state for guard keys defined by profile.
 
 L1 witnesses MUST refuse a different digest for the same guard key.
 
@@ -620,7 +632,7 @@ When a guard-key conflict is detected, the witness MUST persist conflict evidenc
 
 ### 11.2 L2 Policy Witness
 
-L2 witnesses evaluate a canonical action commitment against a policy bundle. They MUST sign the policy bundle digest, policy epoch, action payload digest, decision, and rule results.
+L2 witnesses evaluate a canonical action commitment against a policy bundle. They MUST sign the policy bundle digest, policy epoch, action payload digest, decision, and rule results. Action payload digests, policy bundle digests, and L2 witness signature inputs over JSON objects are JCS-canonicalized per §2.9.
 
 ### 11.3 L3 Domain Attestor
 
@@ -693,6 +705,8 @@ A denial certificate MUST NOT include `intent.grant`, capability token release, 
 The certificate is the summary. The bundle is the proof.
 
 ### 13.1 Certificate Requirements
+
+The certificate digest is computed over the JCS-canonicalized certificate JSON per §2.9. Bundle artifact digests for JSON artifacts (`receipts.jsonl` line-by-line, `keyring.json`, `action-registry.json`, `witness-registry-epoch.json`, `policy-bundle.json`, `policy-decision.json`, `operator-registry.json`, `admission-manifest.json`, `checkpoint.json`, `verification.json`, `replay.json`, and any other JSON artifact in the bundle) are computed over their JCS-canonicalized form. Non-JSON artifacts (binary evidence, encrypted payloads, externally referenced files, JWS compact serializations, COSE messages, transparency-log entries with their own canonicalization) are digested as-received.
 
 A certificate MUST include:
 
@@ -1022,7 +1036,6 @@ amotivv's current verified-action implementation demonstrates MPF v0.2 draft con
 ## 23. Open Questions For v0.2 Finalization
 
 - Should `.well-known/mpf.json` replace or only supplement `.well-known/memory.json`?
-- Should canonical JSON be RFC 8785 JCS everywhere?
 - Should action capability tokens standardize on JWT/JWS, canonical JSON, COSE, or profile-defined encodings?
 - Which artifact set is mandatory for all action certificates?
 - Should action registries be mandatory for memory-only deployments?
