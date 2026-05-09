@@ -101,10 +101,10 @@ A consequential operation that enters an MPF certified action channel and produc
 
 Verified actions divide into two classes by initiation:
 
-- **Agent-initiated actions** are requested through the gateway by a client (typically an LLM-mediated agent), evaluated against policy, and executed under capability-token-enforced or observed-action profiles. The gateway certifies what the agent caused.
+- **Agent-initiated actions** are requested through the gateway by a client (typically an LLM-mediated agent) and certified under the applicable verifier profile. When the profile requires policy evaluation or capability-token enforcement, the certificate binds that evidence. The certificate proves the request, authorization or attestation, execution or observation, and boundaries required by the profile; it MUST NOT claim causation or control beyond those artifacts.
 - **Observed actions** include the case where the gateway has no causal control over the underlying process and only certifies its own observation of a published artifact. The actor is external to MPF (for example, a deterministic public pipeline producing a periodically refreshed output). The certificate MUST NOT imply the gateway controlled or policy-gated the upstream process; it certifies that the observer fetched specific bytes at a specific time, validated declared invariants, and produced a witnessed receipt for that observation.
 
-Observed actions of either kind use the observed-action profile (§9.4).
+Agent-initiated observed actions and external-pipeline observations both use observed-action profiles when tool-side capability enforcement is unavailable.
 
 ### 3.4 Gateway
 
